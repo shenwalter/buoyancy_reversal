@@ -18,7 +18,8 @@ cd vis
 ./run
 ```
 
-Expected result is in <vis/precomputed/sim47_buoyancy_reversal.mp4>.
+Expected result is in
+[vis/precomputed/sim47_buoyancy_reversal.mp4](vis/precomputed/sim47_buoyancy_reversal.mp4)
 
 ## Slides
 
