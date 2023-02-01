@@ -1,0 +1,4 @@
+#!/bin/sh -eu
+
+./vis.py "$@" ../data_*.xmf
+ap.pngmp4 a "$(basename $(dirname $(pwd))).mp4"

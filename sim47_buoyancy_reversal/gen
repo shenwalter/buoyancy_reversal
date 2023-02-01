@@ -1,0 +1,93 @@
+#!/usr/bin/env python3
+
+import aphros
+import numpy as np
+
+
+class Default(aphros.Parameters):
+    dim = 2
+    spacedim = 2
+    np = 1  # Number of processors.
+    bs = 64  # Block size, cells.
+    ny = 192  # Vertical resolution, cells.
+    Re = 1000  # Reynolds number.
+    tmax = 10  # Simulation time.
+    tl = 1440  # Job time limit, seconds.
+    dumpdt = 0.1  # Dump interval.
+    dumplist = "omz ebvf vx vy p"  # Fields to dump.
+    ly = 6.4  # Vertical domain size, length.
+    lx = ly / 3 * 4  # Horizontal domain size, length.
+    reversal = False  # Enable buoyancy reversal.
+    psi_unit_x = 0.8  # Parameters for psi function, see `hook/main.cpp`.
+    psi_unit_y = 1.2
+    psi_unit_u = 3.
+    psi_niter = 100
+    # Parameters for buoancy, see `hook/main.cpp`.
+    buo_bc_y = [0, 1.33, 2.67, 4, 10]
+    buo_bc_values = [0, 0, 0.5e-2, -0.6e-2, -0.6e-2]
+    buo_chis_y = [0, 1.33, 1.63, 4, 10]
+    buo_chis_values = [0, 0, 0.3, 1, 1]
+    buo_bs_y = [0, 1.63, 4, 10]
+    buo_bs_values = [0, 0, -1.7e-2, -1.7e-3]
+    buo_factor = 1.
+    buo_diffusion = 1e-5
+
+
+par = Default("par.py")
+
+inf = par.lx * 10
+eps = 1e-2
+
+domain = aphros.AdjustedDomain(lx=par.lx,
+                               ly=par.ly,
+                               lz=None,
+                               ny=par.ny,
+                               nz=1,
+                               bsz=1,
+                               nproc=par.np,
+                               bsx=par.bs,
+                               bsy=par.bs)
+
+lx = domain.lx
+ly = domain.ly
+lz = domain.lz
+hx = lx / domain.nx
+
+bc = aphros.BoundaryConditions()
+
+conf = aphros.Config()
+
+bc.SlipWall(aphros.Geometry().Box([0, 0, 0], [inf, inf, inf]))
+
+if par.reversal:
+    conf.buo_chim = par.chim
+    conf.buo_bm = par.bm
+
+conf.spacedim = par.spacedim
+conf.tmax = float(par.tmax)
+conf.extent = domain.extent
+conf.mu1 = 1 / par.Re
+conf.bc_path = "inline\n{}\n".format(bc.Generate())
+conf.dump_field_dt = float(par.dumpdt)
+conf.dumplist = par.dumplist
+conf.psi_niter = par.psi_niter
+conf.psi_unit = [par.psi_unit_x, par.psi_unit_y]
+conf.psi_unit_u = par.psi_unit_u
+conf.buo_bc_y = par.buo_bc_y
+conf.buo_bc_values = par.buo_bc_values
+conf.buo_chis_y = par.buo_chis_y
+conf.buo_chis_values = par.buo_chis_values
+conf.buo_bs_y = par.buo_bs_y
+conf.buo_bs_values = par.buo_bs_values
+conf.buo_factor = par.buo_factor
+conf.buo_diffusion = par.buo_diffusion
+
+initchi = aphros.Geometry()
+initchi.Box([0, ly, 0], [inf, ly - par.psi_unit_y, 0])
+conf.init_chi_list_path = "inline\n{}\n".format(initchi.Generate())
+
+conf.GenerateFile("par.conf")
+
+domain = aphros.PartitionDomain(domain)
+domain.GenerateMeshConfig()
+aphros.GenerateJobConfig(domain.nproc, par.tl)
