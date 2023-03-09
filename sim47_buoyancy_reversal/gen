@@ -59,10 +59,6 @@ conf = aphros.Config()
 
 bc.SlipWall(aphros.Geometry().Box([0, 0, 0], [inf, inf, inf]))
 
-if par.reversal:
-    conf.buo_chim = par.chim
-    conf.buo_bm = par.bm
-
 conf.spacedim = par.spacedim
 conf.tmax = float(par.tmax)
 conf.extent = domain.extent
